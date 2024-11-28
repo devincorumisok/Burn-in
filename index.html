@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Headphone Burn-In</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffe4e1;
+            color: #ff69b4;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-top: 20px;
+        }
+        #timer {
+            font-size: 2rem;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #ff69b4;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #ff85c2;
+        }
+        #break-timer {
+            font-size: 1.5rem;
+            color: #ff1493;
+        }
+    </style>
+</head>
+<body>
+    <h1>Headphone Burn-In</h1>
+    <p>Cycle between white noise, pink noise, and frequency sweeps for the best results!</p>
+    <div id="timer">Time Elapsed: 0h 0m 0s</div>
+    <div id="break-timer"></div>
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <audio id="noisePlayer" loop></audio>
+
+    <script>
+        // Local Audio Files (MP3)
+        const whiteNoiseURL = "white.mp3";  // White Noise
+        const pinkNoiseURL = "pink.mp3";   // Pink Noise
+        const frequencySweepURL = "sweep.mp3"; // Frequency Sweep
+
+        // Timing Configuration
+        const playTime = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+        const breakTime = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+
+        // State Variables
+        let elapsedTime = 0; // in milliseconds
+        let playing = false;
+        let timerInterval;
+        let currentPhase = "white"; // Tracks current noise phase
+        let isBreak = false;
+        const noisePlayer = document.getElementById("noisePlayer");
+
+        // Timer Update
+        function updateTimer() {
+            elapsedTime += 1000;
+            const hours = Math.floor(elapsedTime / (60 * 60 * 1000));
+            const minutes = Math.floor((elapsedTime % (60 * 60 * 1000)) / (60 * 1000));
+            const seconds = Math.floor((elapsedTime % (60 * 1000)) / 1000);
+            document.getElementById("timer").textContent = `Time Elapsed: ${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        // Noise Playback Control
+        function playNoise() {
+            if (currentPhase === "white") {
+                noisePlayer.src = whiteNoiseURL;
+            } else if (currentPhase === "pink") {
+                noisePlayer.src = pinkNoiseURL;
+            } else if (currentPhase === "sweep") {
+                noisePlayer.src = frequencySweepURL;
+            }
+            noisePlayer.play();
+        }
+
+        function stopNoise() {
+            noisePlayer.pause();
+            noisePlayer.src = "";
+        }
+
+        // Start and Stop Handlers
+        function startBurnIn() {
+            if (playing) return;
+            playing = true;
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            cycleNoise();
+        }
+
+        function stopBurnIn() {
+            playing = false;
+            clearInterval(timerInterval);
+            stopNoise();
+        }
+
+        // Break Countdown
+        function startBreak() {
+            isBreak = true;
+            let breakTimeRemaining = breakTime / 1000; // Convert to seconds
+            const breakInterval = setInterval(() => {
+                if (!isBreak) {
+                    clearInterval(breakInterval);
+                    return;
+                }
+                const minutes = Math.floor(breakTimeRemaining / 60);
+                const seconds = breakTimeRemaining % 60;
+                document.getElementById("break-timer").textContent = `Break Time Remaining: ${minutes}m ${seconds}s`;
+                if (breakTimeRemaining <= 0) {
+                    clearInterval(breakInterval);
+                    isBreak = false;
+                    document.getElementById("break-timer").textContent = "";
+                    if (playing) cycleNoise();
+                }
+                breakTimeRemaining--;
+            }, 1000);
+        }
+
+        // Noise Cycle Logic
+        function cycleNoise() {
+            playNoise();
+            setTimeout(() => {
+                stopNoise();
+                startBreak();
+            }, playTime); // 8 hours play time
+
+            // Alternate phases after each cycle (white → pink → sweep → repeat)
+            currentPhase = currentPhase === "white" ? "pink" : currentPhase === "pink" ? "sweep" : "white";
+        }
+
+        // Event Listeners
+        document.getElementById("start").addEventListener("click", startBurnIn);
+        document.getElementById("stop").addEventListener("click", stopBurnIn);
+    </script>
+</body>
+</html>
